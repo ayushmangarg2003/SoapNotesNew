@@ -5,15 +5,15 @@ export default function Page() {
   return (
     <>
       <header className="p-4 flex justify-end max-w-7xl mx-auto">
-        <ButtonSignin text="Login" />
+        <ButtonSignin text="Sign in" />
       </header>
       <main>
         <section className="flex flex-col items-left justify-left text-left gap-12 px-8 py-24">
           <h1 className="text-3xl font-extrabold">Genesis Automation ✨</h1>
 
           <p className="text-lg opacity-80">
-          Genesis, your intelligent partner in healthcare automation.
-          STOP TYPING, START TREATING...
+            Genesis, your intelligent partner in healthcare automation.
+            STOP TYPING, START TREATING...
           </p>
 
           <a
