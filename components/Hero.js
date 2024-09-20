@@ -29,7 +29,7 @@ const Hero = (props) => {
           {props.description}
         </p>
 
-        <a target="_blank" href={props.btnLink} className="btn btn-primary btn-wide">
+        <a href={props.btnLink} className="btn btn-primary btn-wide">
           Try it now{" "}
           <svg
             xmlns="http://www.w3.org/2000/svg"
