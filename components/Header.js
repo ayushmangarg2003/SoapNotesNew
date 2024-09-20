@@ -9,21 +9,21 @@ import logo from "@/app/icon.png";
 import config from "@/config";
 
 const links = [
-  {
-    href: "/#pricing",
-    label: "Pricing",
-  },
-  {
-    href: "/#testimonials",
-    label: "Reviews",
-  },
+  // {
+  //   href: "/#pricing",
+  //   label: "Pricing",
+  // },
+  // {
+  //   href: "/#testimonials",
+  //   label: "Reviews",
+  // },
   {
     href: "/#faq",
     label: "FAQ",
   },
 ];
 
-const cta = <ButtonSignin extraStyle="btn-primary" />;
+const cta = <ButtonSignin text="Sign in" extraStyle="btn-primary" />;
 
 // A header with a logo on the left, links in the center (like Pricing, etc...), and a CTA (like Get Started or Login) on the right.
 // The header is responsive, and on mobile, the links are hidden behind a burger button.
@@ -87,7 +87,7 @@ const Header = () => {
         </div>
 
         {/* Your links on large screens */}
-        <div className="hidden lg:flex lg:justify-center lg:gap-12 lg:items-center">
+        {/* <div className="hidden lg:flex lg:justify-center lg:gap-12 lg:items-center">
           {links.map((link) => (
             <Link
               href={link.href}
@@ -98,7 +98,7 @@ const Header = () => {
               {link.label}
             </Link>
           ))}
-        </div>
+        </div> */}
 
         {/* CTA on large screens */}
         <div className="hidden lg:flex lg:justify-end lg:flex-1">{cta}</div>
@@ -153,7 +153,7 @@ const Header = () => {
           {/* Your links on small screens */}
           <div className="flow-root mt-6">
             <div className="py-4">
-              <div className="flex flex-col gap-y-4 items-start">
+              {/* <div className="flex flex-col gap-y-4 items-start">
                 {links.map((link) => (
                   <Link
                     href={link.href}
@@ -164,7 +164,7 @@ const Header = () => {
                     {link.label}
                   </Link>
                 ))}
-              </div>
+              </div> */}
             </div>
             <div className="divider"></div>
             {/* Your CTA on small screens */}
