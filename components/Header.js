@@ -98,7 +98,7 @@ const HeaderContent = () => {
 
 // Wrapping HeaderContent in Suspense
 const Header = () => (
-  <Suspense fallback={<div>Loading...</div>}>
+  <Suspense fallback={<div></div>}>
     <HeaderContent />
   </Suspense>
 );
