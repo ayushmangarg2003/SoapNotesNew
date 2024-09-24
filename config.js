@@ -7,7 +7,7 @@ const config = {
   appDescription:
     "Genesis, your intelligent partner in healthcare automation - STOP TYPING, START TREATING...",
   // REQUIRED (no https://, not trialing slash at the end, just the naked domain)
-  domainName: "shipfa.st",
+  domainName: "soapnotes.vercel.app",
   crisp: {
     // Crisp website ID. IF YOU DON'T USE CRISP: just remove this => Then add a support email in this config file (mailgun.supportEmail) otherwise customer support won't work.
     id: "",
