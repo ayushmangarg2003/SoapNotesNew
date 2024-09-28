@@ -1,5 +1,5 @@
 "use client";  // This makes the component a Client Component
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { FiMic, FiMicOff, FiMenu, FiX, FiMoreVertical } from 'react-icons/fi'; // Icons for buttons
 import ButtonAccount from "@/components/ButtonAccount";
 
@@ -27,9 +27,64 @@ export default function Dashboard() {
     const [newName, setNewName] = useState(""); // Temporary state to store the new name
     const [menuOpenId, setMenuOpenId] = useState(null); // Track which patient's menu is open
 
+    const [transcription, setTranscription] = useState(""); // State for holding transcription text
+    const [isTranscribing, setIsTranscribing] = useState(false); // State to indicate if transcription is in progress
+    const audioChunks = useRef([]); // Store audio chunks
+    const mediaRecorder = useRef(null); // Store the MediaRecorder instance
+
     // Function to toggle recording state
     const handleRecording = () => {
+        if (isRecording) {
+            // Stop the recording
+            mediaRecorder.current.stop();
+        } else {
+            // Start the recording
+            startRecording();
+        }
         setIsRecording(!isRecording);
+    };
+
+    // Function to start recording
+    const startRecording = async () => {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder.current = new MediaRecorder(stream);
+
+        // Push audio data chunks into the audioChunks array
+        mediaRecorder.current.ondataavailable = (event) => {
+            audioChunks.current.push(event.data);
+        };
+
+        // On stop, send the audio for transcription
+        mediaRecorder.current.onstop = async () => {
+            const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
+            audioChunks.current = []; // Clear the audio chunks for the next recording
+            await sendAudioForTranscription(audioBlob);
+        };
+
+        mediaRecorder.current.start();
+    };
+
+    // Function to send the recorded audio for transcription
+    const sendAudioForTranscription = async (audioBlob) => {
+        setIsTranscribing(true); // Show that transcription is in progress
+
+        // Create form data for the API request
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'recording.webm');
+
+        try {
+            const response = await fetch('/api/transcribe', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await response.json();
+            setTranscription(data.transcription);  // Set the transcription result
+        } catch (error) {
+            console.error('Error transcribing the audio:', error);
+        } finally {
+            setIsTranscribing(false);  // Stop showing progress
+        }
     };
 
     // Function to toggle sidebar state
@@ -103,9 +158,8 @@ export default function Dashboard() {
 
             {/* Sidebar */}
             <aside
-                className={`${
-                    isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                } lg:translate-x-0 fixed lg:relative top-0 left-0 z-40 w-[75vw] lg:w-1/4 bg-white p-4 rounded-lg shadow-lg h-full transition-transform duration-300 ease-in-out flex flex-col justify-between`}
+                className={`${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                    } lg:translate-x-0 fixed lg:relative top-0 left-0 z-40 w-[75vw] lg:w-1/4 bg-white p-4 rounded-lg shadow-lg h-full transition-transform duration-300 ease-in-out flex flex-col justify-between`}
                 style={{ height: 'calc(100vh - 24px)' }} // Sidebar occupies 75% on small screens
             >
                 {/* Account Button */}
@@ -211,10 +265,12 @@ export default function Dashboard() {
             <section className="w-full lg:w-3/4 lg:pl-6 flex flex-col justify-between mt-16 lg:mt-0">
                 {/* Text Area for unorganized text */}
                 <div className="flex-1">
-                    <label className="block text-lg font-medium">Give me unorganized text</label>
+                    <label className="block text-lg font-medium">Transcription</label>
                     <textarea
                         className="w-full p-4 mt-2 border rounded-lg h-80 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Paste text here or record your conversation"
+                        placeholder="Your transcription will appear here..."
+                        value={transcription || ""}
+                        readOnly
                     ></textarea>
                 </div>
 
@@ -227,7 +283,7 @@ export default function Dashboard() {
                             className="w-full p-4 border rounded-lg bg-white focus:ring-2 focus:ring-blue-500 text-left"
                             onClick={togglePromptEdit} // Toggle prompt editing (textarea)
                         >
-                            {isEditingPrompt ? "Save and Close" : PROMPT }
+                            {isEditingPrompt ? "Save and Close" : PROMPT}
                         </button>
 
                         {/* Textarea to edit PROMPT (conditionally rendered) */}
@@ -249,9 +305,8 @@ export default function Dashboard() {
 
                     <button
                         onClick={handleRecording}
-                        className={`flex items-center px-4 py-2 rounded-lg text-white font-bold transition-colors ${
-                            isRecording ? 'bg-red-500' : 'bg-blue-500'
-                        }`}
+                        className={`flex items-center px-4 py-2 rounded-lg text-white font-bold transition-colors ${isRecording ? 'bg-red-500' : 'bg-blue-500'
+                            }`}
                     >
                         {isRecording ? <FiMicOff className="mr-2" /> : <FiMic className="mr-2" />}
                         {isRecording ? 'Stop Recording' : 'Start Recording'}

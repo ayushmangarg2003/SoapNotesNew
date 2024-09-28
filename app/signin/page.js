@@ -8,6 +8,7 @@ import config from "@/config";
 
 // This a login/singup page for Supabase Auth.
 // Successfull login redirects to /api/auth/callback where the Code Exchange is processed (see app/api/auth/callback/route.js).
+
 export default function Login() {
   const supabase = createClient();
   const [email, setEmail] = useState("");
@@ -106,10 +107,10 @@ export default function Login() {
               />
             </svg>
           )}
-          Sign-up with Google
+          Sign-in with Google
         </button>
 
-        <div className="divider text-xs text-base-content/50 font-medium">
+        {/* <div className="divider text-xs text-base-content/50 font-medium">
           OR
         </div>
 
@@ -137,7 +138,7 @@ export default function Login() {
             )}
             Send Magic Link
           </button>
-        </form>
+        </form> */}
       </div>
     </main>
   );
