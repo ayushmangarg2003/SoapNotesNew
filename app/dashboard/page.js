@@ -48,6 +48,7 @@ export default function Dashboard() {
     const startRecording = async () => {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder.current = new MediaRecorder(stream);
+        audioChunks.current = []; // Clear the audio chunks for the next recording
 
         // Push audio data chunks into the audioChunks array
         mediaRecorder.current.ondataavailable = (event) => {
@@ -56,8 +57,7 @@ export default function Dashboard() {
 
         // On stop, send the audio for transcription
         mediaRecorder.current.onstop = async () => {
-            const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
-            audioChunks.current = []; // Clear the audio chunks for the next recording
+            const audioBlob = new Blob(audioChunks.current, { type: 'audio/wav' });
             await sendAudioForTranscription(audioBlob);
         };
 
@@ -68,9 +68,8 @@ export default function Dashboard() {
     const sendAudioForTranscription = async (audioBlob) => {
         setIsTranscribing(true); // Show that transcription is in progress
 
-        // Create form data for the API request
         const formData = new FormData();
-        formData.append('audio', audioBlob, 'recording.webm');
+        formData.append('file', audioBlob)
 
         try {
             const response = await fetch('/api/transcribe', {
@@ -79,7 +78,8 @@ export default function Dashboard() {
             });
 
             const data = await response.json();
-            setTranscription(data.transcription);  // Set the transcription result
+            setTranscription(data.transcribe);  // Set the transcription result
+
         } catch (error) {
             console.error('Error transcribing the audio:', error);
         } finally {
@@ -270,7 +270,7 @@ export default function Dashboard() {
                         className="w-full p-4 mt-2 border rounded-lg h-80 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Your transcription will appear here..."
                         value={transcription || ""}
-                        readOnly
+                        onChange={(e) => (setTranscription(e.target.value))}
                     ></textarea>
                 </div>
 
