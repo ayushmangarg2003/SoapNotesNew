@@ -12,10 +12,32 @@ const initialPatients = [
 ];
 
 // Default PROMPT value
-const initialPrompt = "This is the default prompt. You can edit this by clicking the dropdown.";
+const initialPrompt = `You are an AI assistant that helps summarize doctor and patient conversations in a SOP format like below:
+Subjective.The subjective part details the observation of a health care provider to a patient.This could also be the observations that are verbally expressed by the patient.some examples could be answers to questions like:
+
+- Describe your symptoms in detail.When did they start and how long have they been going on ?
+- What is the severity of your symptoms and what makes them better or worse ?
+- What is your medical and mental health history ?
+- What other health - related issues are you experiencing ?
+- What medications are you taking ?
+
+Objective.All measurable data such as vital signs, pulse rate, temperature, etc.are written here.It means that all the data that you can hear, see, smell, feel, and taste are objective observations.If there are any changes regarding of the patient’s data, it will also be written here.This part of your SOAP note should be made up of physical findings gathered from the session with your client.Some examples include:
+
+- Vital signs
+- Relevant medical records or information from from other specialists
+- The client’s appearance, behavior, and mood in session.Note: This section should consist of factual information that you observe and not include anything the patient has told you.
+
+This section combines all the information gathered from the subjective and objective sections.It’s where you describe what you think is going on with the patient.
+
+Assessment:
+You can include your impressions and your interpretation of all of the above information, and also draw from any clinical professional knowledge or DSM criteria / therapeutic models to arrive at a diagnosis(or list of possible diagnoses).
+    Plan.The plan refers to the treatment that the patient need or advised by the doctor.Such as additional lab test to verify the findings.The changes in the intervention are also written here.
+The SOAP note must be concise and well - written. 
+Medical terminologies and jargon are allowed in the SOAP note.`;
 
 export default function Dashboard() {
     const [isRecording, setIsRecording] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState(""); // State to handle search
     const [selectedPatient, setSelectedPatient] = useState(null); // State for the selected patient
@@ -27,8 +49,11 @@ export default function Dashboard() {
     const [newName, setNewName] = useState(""); // Temporary state to store the new name
     const [menuOpenId, setMenuOpenId] = useState(null); // Track which patient's menu is open
 
+    const [error, setError] = useState('')
     const [transcription, setTranscription] = useState(""); // State for holding transcription text
+    const [soapNote, setSoapNote] = useState(""); // State for holding transcription text
     const [isTranscribing, setIsTranscribing] = useState(false); // State to indicate if transcription is in progress
+    const [soapPopUp, setSoapPopUp] = useState(false); // State to indicate if transcription is in progress
     const audioChunks = useRef([]); // Store audio chunks
     const mediaRecorder = useRef(null); // Store the MediaRecorder instance
 
@@ -86,6 +111,33 @@ export default function Dashboard() {
             setIsTranscribing(false);  // Stop showing progress
         }
     };
+
+    const handleGenerateSoap = async () => {
+        setIsGenerating(true)
+        if (isRecording || isTranscribing) {
+            setIsGenerating(false)
+            return
+        }
+
+        const formData = new FormData();
+        formData.append('transcribe', transcription)
+        formData.append('prompt', PROMPT)
+
+        try {
+            const response = await fetch('/api/soapnote', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await response.json();
+            setSoapNote(data.soapnote.content);  // Set the transcription result
+            setIsModalOpen(true)
+        } catch (error) {
+            setError(error)
+        } finally {
+            setIsGenerating(false)
+        }
+    }
 
     // Function to toggle sidebar state
     const toggleSidebar = () => {
@@ -280,7 +332,7 @@ export default function Dashboard() {
                     <div className="relative">
                         {/* Dropdown button */}
                         <button
-                            className="w-full p-4 border rounded-lg bg-white focus:ring-2 focus:ring-blue-500 text-left"
+                            className="w-full p-4 border rounded-lg bg-white focus:ring-2 focus:ring-blue-500 text-left line-clamp-2"
                             onClick={togglePromptEdit} // Toggle prompt editing (textarea)
                         >
                             {isEditingPrompt ? "Save and Close" : PROMPT}
@@ -299,7 +351,7 @@ export default function Dashboard() {
 
                 {/* Generate SOAP Button and Start Recording */}
                 <div className="flex justify-between items-center mt-6">
-                    <button className="px-4 py-2 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600">
+                    <button onClick={handleGenerateSoap} className="px-4 py-2 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600">
                         Generate SOAP
                     </button>
 
@@ -329,30 +381,60 @@ export default function Dashboard() {
             </section>
 
             {/* Modal for displaying SOAP details */}
-            {isModalOpen && selectedPatient && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white w-[90%] h-[90%] rounded-lg p-6 relative overflow-y-auto shadow-lg">
-                        {/* Close button */}
-                        <button
-                            className="absolute top-4 right-4 text-gray-600 hover:text-gray-800"
-                            onClick={closeModal}
-                        >
-                            <FiX size={24} />
-                        </button>
 
-                        {/* Patient details */}
-                        <div className="mb-4">
-                            <h2 className="text-2xl font-bold mb-2">{selectedPatient.name}</h2>
-                        </div>
+            {
+                isModalOpen && soapNote && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                        <div className="bg-white w-[90%] h-[90%] rounded-lg p-6 relative overflow-y-auto shadow-lg">
+                            {/* Close button */}
+                            <button
+                                className="absolute top-4 right-4 text-gray-600 hover:text-gray-800"
+                                onClick={closeModal}
+                            >
+                                <FiX size={24} />
+                            </button>
 
-                        {/* SOAP Details */}
-                        <div>
-                            <h3 className="text-xl font-bold mb-2">SOAP Details</h3>
-                            <p>{selectedPatient.details}</p>
+                            {/* Patient details */}
+                            <div className="mb-4">
+                                <h2 className="text-2xl font-bold mb-2"></h2>
+                            </div>
+
+                            {/* SOAP Details */}
+                            <div>
+                                <h3 className="text-xl font-bold mb-2">SOAP Details</h3>
+                                <p>{soapNote}</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </main>
+                )
+            }
+
+            {
+                isModalOpen && selectedPatient && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                        <div className="bg-white w-[90%] h-[90%] rounded-lg p-6 relative overflow-y-auto shadow-lg">
+                            {/* Close button */}
+                            <button
+                                className="absolute top-4 right-4 text-gray-600 hover:text-gray-800"
+                                onClick={closeModal}
+                            >
+                                <FiX size={24} />
+                            </button>
+
+                            {/* Patient details */}
+                            <div className="mb-4">
+                                <h2 className="text-2xl font-bold mb-2">{selectedPatient.name}</h2>
+                            </div>
+
+                            {/* SOAP Details */}
+                            <div>
+                                <h3 className="text-xl font-bold mb-2">SOAP Details</h3>
+                                <p>{selectedPatient.details}</p>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        </main >
     );
 }
