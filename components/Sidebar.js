@@ -1,35 +1,60 @@
-import React from 'react'
+import React, { useState } from 'react';
 import ButtonAccount from "@/components/ButtonAccount";
-import { useState } from 'react';
 import { FiMenu, FiX, FiMoreVertical } from 'react-icons/fi'; // Icons for buttons
 
 const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
-
     const [editingPatientId, setEditingPatientId] = useState(null); // Track which patient is being renamed
     const [menuOpenId, setMenuOpenId] = useState(null); // Track which patient's menu is open
-
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState(""); // State to handle search
     const [newName, setNewName] = useState(""); // Temporary state to store the new name
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false); // State for confirmation modal
+    const [patientToDelete, setPatientToDelete] = useState(null); // Store the patient to be deleted
 
     const getColor = (index) => {
         const colors = ["bg-blue-500", "bg-pink-500", "bg-green-500", "bg-yellow-500"];
         return colors[index % colors.length]; // Cycle through the color array
     };
-    // Toggle the options menu (3 dots)
+
     const toggleMenu = (patientId) => {
         setMenuOpenId(menuOpenId === patientId ? null : patientId);
     };
 
+    const toggleSidebar = () => {
+        setIsSidebarOpen(!isSidebarOpen);
+    };
 
-    // Handle delete patient
+    const filteredPatients = patients.filter((patient) =>
+        patient.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    // Handle delete confirmation
+    const handleDeleteConfirmation = (patientId) => {
+        setPatientToDelete(patientId); // Set the patient to be deleted
+        setIsConfirmOpen(true); // Open confirmation modal
+    };
+
+    // Confirm delete action
+    const confirmDelete = () => {
+        if (patientToDelete !== null) {
+            handleDelete(patientToDelete);
+        }
+        setIsConfirmOpen(false); // Close confirmation modal
+        setPatientToDelete(null); // Reset patient to delete
+    };
+
+    // Cancel delete action
+    const cancelDelete = () => {
+        setIsConfirmOpen(false); // Close confirmation modal
+        setPatientToDelete(null); // Reset patient to delete
+    };
+
     const handleDelete = (patientId) => {
         const updatedPatients = patients.filter((patient) => patient.id !== patientId);
         setPatients(updatedPatients);
         setMenuOpenId(null); // Close the menu after delete
     };
 
-    // Handle renaming of the patient
     const handleRename = (patientId) => {
         const updatedPatients = patients.map((patient) =>
             patient.id === patientId ? { ...patient, name: newName } : patient
@@ -38,13 +63,6 @@ const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
         setEditingPatientId(null); // Close rename mode
         setNewName(""); // Clear the new name input
     };
-    const toggleSidebar = () => {
-        setIsSidebarOpen(!isSidebarOpen);
-    };
-
-    const filteredPatients = patients.filter((patient) =>
-        patient.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
 
     return (
         <>
@@ -57,23 +75,21 @@ const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
             </button>
 
             <aside
-                className={`${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                    } lg:translate-x-0 fixed lg:relative top-0 left-0 z-40 w-[75vw] lg:w-1/4 bg-white p-4 rounded-lg shadow-lg h-full transition-transform duration-300 ease-in-out flex flex-col justify-between`}
+                className={`${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+                lg:translate-x-0 fixed lg:relative top-0 left-0 z-40 w-[75vw] lg:w-1/4 bg-white p-4 rounded-lg shadow-lg h-full transition-transform duration-300 ease-in-out flex flex-col justify-between`}
                 style={{ height: 'calc(100vh - 24px)' }} // Sidebar occupies 75% on small screens
             >
-                {/* Account Button */}
                 <div className="flex items-center justify-between mb-4">
                     <ButtonAccount />
                 </div>
 
-                {/* Search bar */}
                 <div className="mb-4">
                     <input
                         type="text"
                         placeholder="Search Patient"
                         className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                        value={searchQuery} // Bind search query to input
-                        onChange={(e) => setSearchQuery(e.target.value)} // Update search state on input change
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
 
@@ -91,7 +107,6 @@ const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
                                 >
                                     {patient.name.charAt(0)}
                                 </div>
-                                {/* If renaming, show input field with Save button */}
                                 {editingPatientId === patient.id ? (
                                     <div className="flex items-center w-full">
                                         <input
@@ -110,13 +125,12 @@ const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
                                     </div>
                                 ) : (
                                     <span
-                                        onClick={() => handlePatientClick(patient)} // Click handler to open modal
+                                        onClick={() => handlePatientClick(patient)}
                                         className="flex-1"
                                     >
                                         {patient.name}
                                     </span>
                                 )}
-                                {/* 3-dot icon for options */}
                                 <div className="relative">
                                     <FiMoreVertical
                                         className="ml-2 cursor-pointer"
@@ -129,15 +143,15 @@ const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
                                                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                                                     onClick={() => {
                                                         setEditingPatientId(patient.id);
-                                                        setNewName(patient.name); // Set current name as default
-                                                        setMenuOpenId(null); // Close the menu
+                                                        setNewName(patient.name);
+                                                        setMenuOpenId(null);
                                                     }}
                                                 >
                                                     Rename
                                                 </li>
                                                 <li
                                                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-red-500"
-                                                    onClick={() => handleDelete(patient.id)}
+                                                    onClick={() => handleDeleteConfirmation(patient.id)}
                                                 >
                                                     Delete
                                                 </li>
@@ -152,15 +166,37 @@ const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
                     )}
                 </ul>
 
-                {/* Record New SOAP Button */}
                 <div className="mt-4">
                     <button className="bg-blue-500 text-white w-full px-4 py-2 rounded-lg hover:bg-blue-600 font-bold flex items-center justify-center">
                         Record New SOAP
                     </button>
                 </div>
             </aside>
-        </>
-    )
-}
 
-export default Sidebar
+            {/* Confirmation Modal */}
+            {isConfirmOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+                        <h2 className="text-lg font-bold mb-4">Are you sure?</h2>
+                        <div className="flex justify-end gap-4">
+                            <button
+                                className="px-4 py-2 bg-gray-300 rounded-lg"
+                                onClick={cancelDelete}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="px-4 py-2 bg-red-500 text-white rounded-lg"
+                                onClick={confirmDelete}
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+};
+
+export default Sidebar;

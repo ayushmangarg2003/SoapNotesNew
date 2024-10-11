@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { FiMic, FiMicOff } from 'react-icons/fi';
 import Modal from "@/components/Modal";
 import Sidebar from "@/components/Sidebar";
@@ -7,10 +7,10 @@ import Loader from "@/components/Loader";
 import FileUpload from "@/components/FileUpload"; // Import the FileUpload component
 
 const initialPatients = [
-    { id: 1, name: "Michael Brown", details: 'Sample SOAP details for Michael' },
-    { id: 2, name: "Sarah Johnson", details: 'Sample SOAP details for Sarah' },
-    { id: 3, name: "Emily Davis", details: 'Sample SOAP details for Emily' },
-    { id: 4, name: "John Smith", details: 'Sample SOAP details for John' },
+    { id: 1, name: "Michael Brown", details: 'Sample SOAP details for Michael', time: 'Thu, 10 Oct 2024 09:17:18 GMT' },
+    { id: 2, name: "Sarah Johnson", details: 'Sample SOAP details for Sarah', time: 'Thu, 10 Oct 2024 09:17:18 GMT' },
+    { id: 3, name: "Emily Davis", details: 'Sample SOAP details for Emily', time: 'Thu, 10 Oct 2024 09:17:18 GMT' },
+    { id: 4, name: "John Smith", details: 'Sample SOAP details for John', time: 'Thu, 10 Oct 2024 09:17:18 GMT' },
 ];
 
 const initialPrompt = `You are an AI assistant that helps summarize doctor and patient conversations in a SOP format like below:
@@ -49,6 +49,8 @@ export default function Dashboard() {
     const [isTranscribing, setIsTranscribing] = useState(false);
     const audioChunks = useRef([]);
     const mediaRecorder = useRef(null);
+
+    // const timeCreated = new Date(Date.now()).toUTCString()
 
     const handleRecording = () => {
         if (isRecording) {
@@ -203,13 +205,14 @@ export default function Dashboard() {
 
             {
                 isModalOpen && soapNote && (
-                    <Modal data={soapNote} closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
+                    <Modal data={soapNote} time={new Date(Date.now()).toUTCString()
+                    } closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
                 )
             }
 
             {
                 isModalOpen && selectedPatient && (
-                    <Modal data={selectedPatient.details} closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
+                    <Modal data={selectedPatient.details} time={selectedPatient.time} closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
                 )
             }
         </main >
