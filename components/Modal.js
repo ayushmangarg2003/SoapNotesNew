@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { FiX, FiEdit3, FiEye } from 'react-icons/fi'; // Icons for buttons
+import { FiX, FiEdit3, FiEye } from "react-icons/fi";
 import { createClient } from "@/libs/supabase/client";
 
-const Modal = ({ closeModal, data, time }) => {
-  const [isEditMode, setIsEditMode] = useState(false); // Toggle between edit and preview mode
-  const [editableData, setEditableData] = useState(data); // Editable state for SOAP note
+const Modal = ({ closeModal, data, time, isNewPatient }) => {
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editableData, setEditableData] = useState(data);
+  const [showPopup, setShowPopup] = useState(false); // Popup state
+  const [patientName, setPatientName] = useState(""); // State for patient name
+  const [isSaving, setIsSaving] = useState(false); // Loading state for save action
 
   const supabase = createClient();
   const [user, setUser] = useState(null);
@@ -19,14 +22,56 @@ const Modal = ({ closeModal, data, time }) => {
       } = await supabase.auth.getUser();
 
       setUser(user);
+      console.log("USER", user);
+      
     };
 
     getUser();
   }, [supabase]);
 
-  // Handle saving and closing the modal
-  const handleSaveAndClose = () => {
-    closeModal(); // Close the modal
+  // Handle showing the popup or directly saving based on isNewPatient flag
+  const handleSaveClick = async () => {
+    if (isNewPatient) {
+      setShowPopup(true); // Show popup only for new patients
+    } else {
+      await handleSaveData(); // Directly save data for existing patients and close the modal
+      closeModal(); // Close the modal after saving
+    }
+  };
+
+  // Handle saving the data to Supabase and closing the modal
+  const handleSaveData = async () => {
+    if (isNewPatient && !patientName) {
+      alert("Please enter the patient's name.");
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const { error } = await supabase.from("soap_notes").insert([
+        {
+          patient_name: isNewPatient ? patientName : null, // Only save patient name for new patients
+          soap_note: editableData,
+          created_at: new Date(),
+          email: user?.email,
+        },
+      ]);
+
+      if (error) {
+        throw error;
+      }
+
+      // Close the modal if saving was successful
+      if (!isNewPatient) {
+        closeModal(); // Ensure the modal closes immediately if no popup
+      }
+    } catch (error) {
+      console.error("Error saving data:", error.message);
+    } finally {
+      setIsSaving(false);
+      setShowPopup(false); // Hide the popup if it was shown
+    }
   };
 
   return (
@@ -36,7 +81,7 @@ const Modal = ({ closeModal, data, time }) => {
           {/* Save and Close button */}
           <button
             className="text-blue-600 hover:text-blue-800 font-bold"
-            onClick={handleSaveAndClose}
+            onClick={handleSaveClick}
           >
             Save and Close
           </button>
@@ -50,10 +95,7 @@ const Modal = ({ closeModal, data, time }) => {
           </button>
 
           {/* Close button */}
-          <button
-            className="text-gray-600 hover:text-gray-800"
-            onClick={closeModal}
-          >
+          <button className="text-gray-600 hover:text-gray-800" onClick={closeModal}>
             <FiX size={24} />
           </button>
         </div>
@@ -74,10 +116,42 @@ const Modal = ({ closeModal, data, time }) => {
           )}
         </div>
         <div className="w-full h-[10%] flex justify-between gap-4 align-baseline">
-          <p>{`Approved by ${user}`}</p>
+          <p>{`Approved by ${user?.email}`}</p>
           <p>{time}</p>
         </div>
       </div>
+
+      {/* Popup for asking patient's name only if isNewPatient is true */}
+      {showPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-[90%] md:w-[50%]">
+            <h2 className="text-xl font-bold mb-4">Enter Patient's Name</h2>
+            <input
+              type="text"
+              value={patientName}
+              onChange={(e) => setPatientName(e.target.value)}
+              className="input input-bordered w-full mb-4"
+              placeholder="Patient's Name"
+            />
+            <div className="flex justify-end gap-4">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowPopup(false)}
+                disabled={isSaving}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleSaveData}
+                disabled={isSaving}
+              >
+                {isSaving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

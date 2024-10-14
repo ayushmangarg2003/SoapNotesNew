@@ -205,14 +205,14 @@ export default function Dashboard() {
 
             {
                 isModalOpen && soapNote && (
-                    <Modal data={soapNote} time={new Date(Date.now()).toUTCString()
+                    <Modal isNewPatient={true} data={soapNote} time={new Date(Date.now()).toUTCString()
                     } closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
                 )
             }
 
             {
                 isModalOpen && selectedPatient && (
-                    <Modal data={selectedPatient.details} time={selectedPatient.time} closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
+                    <Modal isNewPatient={false} data={selectedPatient.details} time={selectedPatient.time} closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
                 )
             }
         </main >
