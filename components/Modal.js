@@ -23,7 +23,7 @@ const Modal = ({ closeModal, data, time, isNewPatient }) => {
 
       setUser(user);
       console.log("USER", user);
-      
+
     };
 
     getUser();
@@ -125,7 +125,7 @@ const Modal = ({ closeModal, data, time, isNewPatient }) => {
       {showPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-[90%] md:w-[50%]">
-            <h2 className="text-xl font-bold mb-4">Enter Patient's Name</h2>
+            <h2 className="text-xl font-bold mb-4">Enter Name of Patient</h2>
             <input
               type="text"
               value={patientName}
