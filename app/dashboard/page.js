@@ -4,14 +4,11 @@ import { FiMic, FiMicOff } from 'react-icons/fi';
 import Modal from "@/components/Modal";
 import Sidebar from "@/components/Sidebar";
 import Loader from "@/components/Loader";
-import FileUpload from "@/components/FileUpload"; // Import the FileUpload component
+import FileUpload from "@/components/FileUpload";
+import { createClient } from "@/libs/supabase/client";
 
-const initialPatients = [
-    { id: 1, name: "Michael Brown", details: 'Sample SOAP details for Michael', time: 'Thu, 10 Oct 2024 09:17:18 GMT' },
-    { id: 2, name: "Sarah Johnson", details: 'Sample SOAP details for Sarah', time: 'Thu, 10 Oct 2024 09:17:18 GMT' },
-    { id: 3, name: "Emily Davis", details: 'Sample SOAP details for Emily', time: 'Thu, 10 Oct 2024 09:17:18 GMT' },
-    { id: 4, name: "John Smith", details: 'Sample SOAP details for John', time: 'Thu, 10 Oct 2024 09:17:18 GMT' },
-];
+// Initialize Supabase client
+const supabase = createClient();
 
 const initialPrompt = `You are an AI assistant that helps summarize doctor and patient conversations in a SOP format like below:
 Subjective. The subjective part details the observation of a health care provider to a patient. This could also be the observations that are verbally expressed by the patient. some examples could be answers to questions like:
@@ -33,7 +30,7 @@ Assessment:
 You can include your impressions and your interpretation of all of the above information, and also draw from any clinical professional knowledge or DSM criteria/therapeutic models to arrive at a diagnosis (or list of possible diagnoses).
 Plan. The plan refers to the treatment that the patient need or advised by the doctor. Such as additional lab test to verify the findings. The changes in the intervention are also written here.
 The SOAP note must be concise and well-written. 
-Medical terminologies and jargon are allowed in the SOAP note.`;
+Medical terminologies and jargon are allowed in the SOAP note.`
 
 export default function Dashboard() {
     const [isRecording, setIsRecording] = useState(false);
@@ -42,15 +39,55 @@ export default function Dashboard() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [PROMPT, setPROMPT] = useState(initialPrompt);
     const [isEditingPrompt, setIsEditingPrompt] = useState(false);
-    const [patients, setPatients] = useState(initialPatients);
-    const [error, setError] = useState('')
+    const [patients, setPatients] = useState([]);
+    const [error, setError] = useState('');
     const [transcription, setTranscription] = useState("");
     const [soapNote, setSoapNote] = useState("");
     const [isTranscribing, setIsTranscribing] = useState(false);
+    const [user, setUser] = useState(null);
     const audioChunks = useRef([]);
     const mediaRecorder = useRef(null);
 
-    // const timeCreated = new Date(Date.now()).toUTCString()
+    // Fetch user and patient data on component mount
+    useEffect(() => {
+        const getUserAndPatients = async () => {
+            // Fetch user data from Supabase
+            const {
+                data: { user },
+            } = await supabase.auth.getUser();
+
+            await fetchPatients('ayushmangarg929@gmail.com');
+
+            if (user) {
+                setUser(user);
+                await fetchPatients(user.email);
+            }
+        };
+
+        getUserAndPatients();
+    }, []);
+
+    // Fetch patients from Supabase filtered by email
+    const fetchPatients = async (email) => {
+        try {
+            const { data, error } = await supabase
+                .from('soap_notes')
+                .select('*')
+                .eq('email', email);
+            console.log(data);
+
+            if (error) {
+                console.error('Error fetching patients:', error);
+                setError('Failed to load patients.');
+            } else {
+                setPatients(data);
+            }
+
+        } catch (err) {
+            console.error('Unexpected error:', err);
+            setError('Unexpected error occurred.');
+        }
+    };
 
     const handleRecording = () => {
         if (isRecording) {
@@ -82,7 +119,7 @@ export default function Dashboard() {
         setIsTranscribing(true);
 
         const formData = new FormData();
-        formData.append('file', audioBlob)
+        formData.append('file', audioBlob);
 
         try {
             const response = await fetch('/api/transcribe', {
@@ -100,16 +137,16 @@ export default function Dashboard() {
     };
 
     const handleGenerateSoap = async () => {
-        setIsGenerating(true)
+        setIsGenerating(true);
 
         if (isRecording || isTranscribing) {
-            setIsGenerating(false)
-            return
+            setIsGenerating(false);
+            return;
         }
 
         const formData = new FormData();
-        formData.append('transcribe', transcription)
-        formData.append('prompt', PROMPT)
+        formData.append('transcribe', transcription);
+        formData.append('prompt', PROMPT);
 
         try {
             const response = await fetch('/api/soapnote', {
@@ -119,11 +156,11 @@ export default function Dashboard() {
 
             const data = await response.json();
             setSoapNote(data.soapnote.content);
-            setIsModalOpen(true)
+            setIsModalOpen(true);
         } catch (error) {
-            setError(error)
+            setError(error);
         } finally {
-            setIsGenerating(false)
+            setIsGenerating(false);
         }
     };
 
@@ -159,7 +196,7 @@ export default function Dashboard() {
                             className="w-full p-4 mt-2 border rounded-lg h-80 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="Your transcription will appear here..."
                             value={transcription || ""}
-                            onChange={(e) => (setTranscription(e.target.value))}
+                            onChange={(e) => setTranscription(e.target.value)}
                         ></textarea>
                     )}
                 </div>
@@ -191,30 +228,23 @@ export default function Dashboard() {
 
                     <button
                         onClick={handleRecording}
-                        className={`flex items-center px-4 py-2 rounded-lg text-white font-bold transition-colors ${isRecording ? 'bg-red-500' : 'bg-blue-500'
-                            }`}
+                        className={`flex items-center px-4 py-2 rounded-lg text-white font-bold transition-colors ${isRecording ? 'bg-red-500' : 'bg-blue-500'}`}
                     >
                         {isRecording ? <FiMicOff className="mr-2" /> : <FiMic className="mr-2" />}
                         {isRecording ? 'Stop Recording' : 'Start Recording'}
                     </button>
                 </div>
 
-                {/* Use FileUpload Component */}
                 <FileUpload />
             </section>
 
-            {
-                isModalOpen && soapNote && (
-                    <Modal isNewPatient={true} data={soapNote} time={new Date(Date.now()).toUTCString()
-                    } closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
-                )
-            }
+            {isModalOpen && soapNote && (
+                <Modal isNewPatient={true} data={soapNote} time={new Date(Date.now()).toUTCString()} closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
+            )}
 
-            {
-                isModalOpen && selectedPatient && (
-                    <Modal isNewPatient={false} data={selectedPatient.details} time={selectedPatient.time} closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
-                )
-            }
-        </main >
+            {isModalOpen && selectedPatient && (
+                <Modal isNewPatient={false} data={selectedPatient.soap_note} time={selectedPatient.created_at} closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
+            )}
+        </main>
     );
 }

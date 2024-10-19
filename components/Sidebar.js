@@ -25,7 +25,7 @@ const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
     };
 
     const filteredPatients = patients.filter((patient) =>
-        patient.name.toLowerCase().includes(searchQuery.toLowerCase())
+        patient.patient_name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     // Handle delete confirmation
@@ -105,7 +105,7 @@ const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
                                 <div
                                     className={`w-8 h-8 ${getColor(index)} text-white rounded-full flex justify-center items-center mr-4`}
                                 >
-                                    {patient.name.charAt(0)}
+                                    {patient.patient_name.charAt(0)}
                                 </div>
                                 {editingPatientId === patient.id ? (
                                     <div className="flex items-center w-full">
@@ -128,7 +128,7 @@ const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
                                         onClick={() => handlePatientClick(patient)}
                                         className="flex-1"
                                     >
-                                        {patient.name}
+                                        {patient.patient_name}
                                     </span>
                                 )}
                                 <div className="relative">
@@ -143,7 +143,7 @@ const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
                                                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                                                     onClick={() => {
                                                         setEditingPatientId(patient.id);
-                                                        setNewName(patient.name);
+                                                        setNewName(patient.patient_name);
                                                         setMenuOpenId(null);
                                                     }}
                                                 >
