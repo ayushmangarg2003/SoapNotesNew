@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { FiX, FiEdit3, FiEye } from "react-icons/fi";
+import { FiEdit3, FiEye } from "react-icons/fi"; // Removed FiX for close button
 import { createClient } from "@/libs/supabase/client";
 
 const Modal = ({ closeModal, data, time, isNewPatient }) => {
@@ -22,20 +22,29 @@ const Modal = ({ closeModal, data, time, isNewPatient }) => {
       } = await supabase.auth.getUser();
 
       setUser(user);
-      console.log("USER", user);
-
     };
 
     getUser();
   }, [supabase]);
 
-  // Handle showing the popup or directly saving based on isNewPatient flag
-  const handleSaveClick = async () => {
-    if (isNewPatient) {
-      setShowPopup(true); // Show popup only for new patients
-    } else {
-      await handleSaveData(); // Directly save data for existing patients and close the modal
-      closeModal(); // Close the modal after saving
+  // Fetch updated patient data from Supabase
+  const fetchUpdatedPatients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("soap_notes")
+        .select("*")
+        .eq("email", user?.email);
+
+      if (error) {
+        console.error("Error fetching updated patients:", error.message);
+        return;
+      }
+
+      // Dispatch a custom event to trigger patient update in the sidebar
+      const updateEvent = new CustomEvent("patientsUpdated", { detail: data });
+      window.dispatchEvent(updateEvent);
+    } catch (error) {
+      console.error("Error fetching patients:", error.message);
     }
   };
 
@@ -49,28 +58,54 @@ const Modal = ({ closeModal, data, time, isNewPatient }) => {
     setIsSaving(true);
 
     try {
-      const { error } = await supabase.from("soap_notes").insert([
-        {
-          patient_name: isNewPatient ? patientName : null, // Only save patient name for new patients
-          soap_note: editableData,
-          created_at: new Date(),
-          email: user?.email,
-        },
-      ]);
+      if (isNewPatient) {
+        // Insert new patient data
+        const { error } = await supabase.from("soap_notes").insert([
+          {
+            patient_name: patientName,
+            soap_note: editableData,
+            created_at: new Date(),
+            email: user?.email,
+          },
+        ]);
 
-      if (error) {
-        throw error;
+        if (error) {
+          throw error;
+        }
+
+        // Fetch updated patients after creating a new one
+        await fetchUpdatedPatients();
+      } else {
+        // Update existing patient data
+        const { error } = await supabase
+          .from("soap_notes")
+          .update({ soap_note: editableData })
+          .eq("soap_note", data);
+
+        if (error) {
+          throw error;
+        }
+
+        // Fetch updated patients after updating an existing one
+        await fetchUpdatedPatients();
       }
 
-      // Close the modal if saving was successful
-      if (!isNewPatient) {
-        closeModal(); // Ensure the modal closes immediately if no popup
-      }
+      // Close the modal after saving
+      closeModal();
     } catch (error) {
       console.error("Error saving data:", error.message);
     } finally {
       setIsSaving(false);
       setShowPopup(false); // Hide the popup if it was shown
+    }
+  };
+
+  // Handle showing the popup or directly saving based on isNewPatient flag
+  const handleSaveClick = async () => {
+    if (isNewPatient) {
+      setShowPopup(true); // Show popup only for new patients
+    } else {
+      await handleSaveData(); // Directly save data for existing patients
     }
   };
 
@@ -82,8 +117,9 @@ const Modal = ({ closeModal, data, time, isNewPatient }) => {
           <button
             className="text-blue-600 hover:text-blue-800 font-bold"
             onClick={handleSaveClick}
+            disabled={isSaving}
           >
-            Save and Close
+            {isSaving ? "Saving..." : "Save and Close"}
           </button>
 
           {/* Toggle between Edit and Preview Mode */}
@@ -92,11 +128,6 @@ const Modal = ({ closeModal, data, time, isNewPatient }) => {
             onClick={() => setIsEditMode(!isEditMode)}
           >
             {isEditMode ? <FiEye size={24} /> : <FiEdit3 size={24} />}
-          </button>
-
-          {/* Close button */}
-          <button className="text-gray-600 hover:text-gray-800" onClick={closeModal}>
-            <FiX size={24} />
           </button>
         </div>
 

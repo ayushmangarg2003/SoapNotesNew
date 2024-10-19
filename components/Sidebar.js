@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ButtonAccount from "@/components/ButtonAccount";
 import { FiMenu, FiX, FiMoreVertical } from 'react-icons/fi'; // Icons for buttons
+import { createClient } from "@/libs/supabase/client"; // Supabase client
+
+// Initialize Supabase client
+const supabase = createClient();
 
 const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
     const [editingPatientId, setEditingPatientId] = useState(null); // Track which patient is being renamed
@@ -25,8 +29,21 @@ const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
     };
 
     const filteredPatients = patients.filter((patient) =>
-        patient.patient_name.toLowerCase().includes(searchQuery.toLowerCase())
+        patient?.patient_name?.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    useEffect(() => {
+        const handlePatientsUpdate = (event) => {
+            setPatients(event.detail); // Update patients with new data
+        };
+
+        window.addEventListener("patientsUpdated", handlePatientsUpdate);
+
+        return () => {
+            window.removeEventListener("patientsUpdated", handlePatientsUpdate);
+        };
+    }, []);
+
 
     // Handle delete confirmation
     const handleDeleteConfirmation = (patientId) => {
@@ -49,19 +66,56 @@ const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
         setPatientToDelete(null); // Reset patient to delete
     };
 
-    const handleDelete = (patientId) => {
-        const updatedPatients = patients.filter((patient) => patient.id !== patientId);
-        setPatients(updatedPatients);
-        setMenuOpenId(null); // Close the menu after delete
+    // Delete patient from Supabase and update local state
+    const handleDelete = async (patientId) => {
+        try {
+            // Delete from Supabase
+            const { error } = await supabase
+                .from('soap_notes')
+                .delete()
+                .eq('id', patientId);
+
+            if (error) {
+                console.error('Error deleting patient:', error);
+                return;
+            }
+
+            // Update local state after successful deletion
+            const updatedPatients = patients.filter((patient) => patient.id !== patientId);
+            setPatients(updatedPatients);
+            setMenuOpenId(null); // Close the menu after delete
+        } catch (err) {
+            console.error('Unexpected error:', err);
+        }
     };
 
-    const handleRename = (patientId) => {
-        const updatedPatients = patients.map((patient) =>
-            patient.id === patientId ? { ...patient, name: newName } : patient
-        );
-        setPatients(updatedPatients);
-        setEditingPatientId(null); // Close rename mode
-        setNewName(""); // Clear the new name input
+    // Update patient name in Supabase and local state
+    const handleRename = async (patientId) => {
+        if (!newName.trim()) return; // Prevent empty names
+
+        try {
+            // Update in Supabase
+            const { error } = await supabase
+                .from('soap_notes')
+                .update({ patient_name: newName })
+                .eq('id', patientId);
+
+            if (error) {
+                console.error('Error updating patient name:', error);
+                return;
+            }
+
+            // Update local state after successful update
+            const updatedPatients = patients.map((patient) =>
+                patient.id === patientId ? { ...patient, patient_name: newName } : patient
+            );
+            setPatients(updatedPatients);
+
+            setEditingPatientId(null); // Close rename mode
+            setNewName(""); // Clear the new name input
+        } catch (err) {
+            console.error('Unexpected error:', err);
+        }
     };
 
     return (

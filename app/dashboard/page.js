@@ -10,27 +10,29 @@ import { createClient } from "@/libs/supabase/client";
 // Initialize Supabase client
 const supabase = createClient();
 
-const initialPrompt = `You are an AI assistant that helps summarize doctor and patient conversations in a SOP format like below:
-Subjective. The subjective part details the observation of a health care provider to a patient. This could also be the observations that are verbally expressed by the patient. some examples could be answers to questions like:
+const initialPrompt = `You are an AI assistant that helps summarize doctor and patient conversations in a SOAP format like below:
 
-- Describe your symptoms in detail. When did they start and how long have they been going on?
-- What is the severity of your symptoms and what makes them better or worse?
+Subjective. The subjective part details the observation of a healthcare provider of a patient. This could also include the observations verbally expressed by the patient. Some examples could be answers to questions like:
+
+- Describe your symptoms in detail. When did they start, and how long have they been going on?
+- What is the severity of your symptoms, and what makes them better or worse?
 - What is your medical and mental health history?
 - What other health-related issues are you experiencing?
 - What medications are you taking?
 
-Objective. All measurable data such as vital signs, pulse rate, temperature, etc. are written here. It means that all the data that you can hear, see, smell, feel, and taste are objective observations. If there are any changes regarding of the patient’s data, it will also be written here. This part of your SOAP note should be made up of physical findings gathered from the session with your client. Some examples include:
+Objective. All measurable data, such as vital signs, pulse rate, temperature, etc., are written here. It includes all the data that can be heard, seen, smelled, felt, and tasted as objective observations. If there are any changes in the patient’s data, it should be recorded here. This part of your SOAP note should consist of physical findings gathered during the session with your client. Some examples include:
 
 - Vital signs
-- Relevant medical records or information from from other specialists
-- The client’s appearance, behavior, and mood in session.Note: This section should consist of factual information that you observe and not include anything the patient has told you.
+- Relevant medical records or information from other specialists
+- The client’s appearance, behavior, and mood during the session
 
-This section combines all the information gathered from the subjective and objective sections. It’s where you describe what you think is going on with the patient.
-Assessment:
-You can include your impressions and your interpretation of all of the above information, and also draw from any clinical professional knowledge or DSM criteria/therapeutic models to arrive at a diagnosis (or list of possible diagnoses).
-Plan. The plan refers to the treatment that the patient need or advised by the doctor. Such as additional lab test to verify the findings. The changes in the intervention are also written here.
-The SOAP note must be concise and well-written. 
-Medical terminologies and jargon are allowed in the SOAP note.`
+Note: This section should consist of factual information that you observe and should not include anything the patient has told you.
+
+Assessment. This section combines all the information gathered from the subjective and objective sections. Here, you describe what you think is going on with the patient. You can include your impressions and interpretation of all the above information, and also draw from any clinical professional knowledge or DSM criteria/therapeutic models to arrive at a diagnosis (or list of possible diagnoses).
+
+Plan. The plan refers to the treatment that the patient needs or is advised by the doctor. It may include additional lab tests to verify the findings. Any changes in the intervention should also be written here.
+
+The SOAP note must be concise and well-written. Medical terminologies and jargon are allowed in the SOAP note.`;
 
 export default function Dashboard() {
     const [isRecording, setIsRecording] = useState(false);
@@ -45,6 +47,8 @@ export default function Dashboard() {
     const [soapNote, setSoapNote] = useState("");
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [user, setUser] = useState(null);
+    const [isLoading, setIsLoading] = useState(true); // Loading state
+
     const audioChunks = useRef([]);
     const mediaRecorder = useRef(null);
 
@@ -60,6 +64,8 @@ export default function Dashboard() {
                 setUser(user);
                 await fetchPatients(user.email);
             }
+
+            setIsLoading(false); // Set loading to false once done
         };
 
         getUserAndPatients();
@@ -72,7 +78,6 @@ export default function Dashboard() {
                 .from('soap_notes')
                 .select('*')
                 .eq('email', email);
-            console.log(data);
 
             if (error) {
                 console.error('Error fetching patients:', error);
@@ -80,7 +85,6 @@ export default function Dashboard() {
             } else {
                 setPatients(data);
             }
-
         } catch (err) {
             console.error('Unexpected error:', err);
             setError('Unexpected error occurred.');
@@ -182,66 +186,74 @@ export default function Dashboard() {
 
     return (
         <main className="min-h-screen flex bg-blue-50 p-6 lg:p-3">
-            <Sidebar patients={patients} setPatients={setPatients} handlePatientClick={handlePatientClick} />
+            {isLoading ? ( // Centered Loader for initial loading
+                <div className="flex items-center justify-center w-full h-screen">
+                    <Loader text="Getting things ready..." />
+                </div>
+            ) : (
+                <>
+                    <Sidebar patients={patients} setPatients={setPatients} handlePatientClick={handlePatientClick} />
 
-            <section className="w-full lg:w-3/4 lg:pl-6 flex flex-col justify-between mt-16 lg:mt-0">
-                <div className="flex-1">
-                    <label className="block text-lg font-medium">Transcription</label>
-                    {isTranscribing ? (
-                        <Loader text="Transcribing audio..." />
-                    ) : (
-                        <textarea
-                            className="w-full p-4 mt-2 border rounded-lg h-80 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Your transcription will appear here..."
-                            value={transcription || ""}
-                            onChange={(e) => setTranscription(e.target.value)}
-                        ></textarea>
+                    <section className="w-full lg:w-3/4 lg:pl-6 flex flex-col justify-between mt-16 lg:mt-0">
+                        <div className="flex-1">
+                            <label className="block text-lg font-medium">Transcription</label>
+                            {isTranscribing ? (
+                                <Loader text="Transcribing audio..." />
+                            ) : (
+                                <textarea
+                                    className="w-full p-4 mt-2 border rounded-lg h-80 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Your transcription will appear here..."
+                                    value={transcription || ""}
+                                    onChange={(e) => setTranscription(e.target.value)}
+                                ></textarea>
+                            )}
+                        </div>
+
+                        <div className="mt-6">
+                            <label className="block text-lg font-medium mb-2">Edit Prompt</label>
+                            <div className="relative">
+                                <button
+                                    className="w-full p-4 border rounded-lg bg-white focus:ring-2 focus:ring-blue-500 text-left line-clamp-2"
+                                    onClick={togglePromptEdit}
+                                >
+                                    {isEditingPrompt ? "Save and Close" : PROMPT}
+                                </button>
+
+                                {isEditingPrompt && (
+                                    <textarea
+                                        className="w-full p-4 mt-2 border rounded-lg h-48 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        value={PROMPT}
+                                        onChange={handlePromptChange}
+                                    ></textarea>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between items-center mt-6">
+                            <button onClick={handleGenerateSoap} className="px-4 py-2 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600">
+                                {isGenerating ? "Generating..." : "Generate SOAP"}
+                            </button>
+
+                            <button
+                                onClick={handleRecording}
+                                className={`flex items-center px-4 py-2 rounded-lg text-white font-bold transition-colors ${isRecording ? 'bg-red-500' : 'bg-blue-500'}`}
+                            >
+                                {isRecording ? <FiMicOff className="mr-2" /> : <FiMic className="mr-2" />}
+                                {isRecording ? 'Stop Recording' : 'Start Recording'}
+                            </button>
+                        </div>
+
+                        <FileUpload />
+                    </section>
+
+                    {isModalOpen && soapNote && (
+                        <Modal isNewPatient={true} data={soapNote} time={new Date(Date.now()).toUTCString()} closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
                     )}
-                </div>
 
-                <div className="mt-6">
-                    <label className="block text-lg font-medium mb-2">Edit Prompt</label>
-                    <div className="relative">
-                        <button
-                            className="w-full p-4 border rounded-lg bg-white focus:ring-2 focus:ring-blue-500 text-left line-clamp-2"
-                            onClick={togglePromptEdit}
-                        >
-                            {isEditingPrompt ? "Save and Close" : PROMPT}
-                        </button>
-
-                        {isEditingPrompt && (
-                            <textarea
-                                className="w-full p-4 mt-2 border rounded-lg h-48 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                value={PROMPT}
-                                onChange={handlePromptChange}
-                            ></textarea>
-                        )}
-                    </div>
-                </div>
-
-                <div className="flex justify-between items-center mt-6">
-                    <button onClick={handleGenerateSoap} className="px-4 py-2 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600">
-                        {isGenerating ? "Generating..." : "Generate SOAP"}
-                    </button>
-
-                    <button
-                        onClick={handleRecording}
-                        className={`flex items-center px-4 py-2 rounded-lg text-white font-bold transition-colors ${isRecording ? 'bg-red-500' : 'bg-blue-500'}`}
-                    >
-                        {isRecording ? <FiMicOff className="mr-2" /> : <FiMic className="mr-2" />}
-                        {isRecording ? 'Stop Recording' : 'Start Recording'}
-                    </button>
-                </div>
-
-                <FileUpload />
-            </section>
-
-            {isModalOpen && soapNote && (
-                <Modal isNewPatient={true} data={soapNote} time={new Date(Date.now()).toUTCString()} closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
-            )}
-
-            {isModalOpen && selectedPatient && (
-                <Modal isNewPatient={false} data={selectedPatient.soap_note} time={selectedPatient.created_at} closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
+                    {isModalOpen && selectedPatient && (
+                        <Modal isNewPatient={false} data={selectedPatient.soap_note} time={selectedPatient.created_at} closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
+                    )}
+                </>
             )}
         </main>
     );
