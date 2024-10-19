@@ -56,8 +56,6 @@ export default function Dashboard() {
                 data: { user },
             } = await supabase.auth.getUser();
 
-            await fetchPatients('ayushmangarg929@gmail.com');
-
             if (user) {
                 setUser(user);
                 await fetchPatients(user.email);
