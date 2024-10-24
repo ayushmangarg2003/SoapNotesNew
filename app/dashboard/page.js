@@ -247,7 +247,7 @@ export default function Dashboard() {
                     </section>
 
                     {isModalOpen && soapNote && (
-                        <Modal isNewPatient={true} data={soapNote} time={new Date(Date.now()).toUTCString()} closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
+                        <Modal isNewPatient={true} data={soapNote} time={new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '').replace(/\//g, '-').replace(/(\d{2})-(\d{2})-(\d{4})/, '$2-$1-$3') + ' CST'} closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
                     )}
 
                     {isModalOpen && selectedPatient && (

@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { FiEdit3, FiEye } from "react-icons/fi"; // Removed FiX for close button
+import { FiEdit3, FiEye } from "react-icons/fi";
 import { createClient } from "@/libs/supabase/client";
 
 const Modal = ({ closeModal, data, time, isNewPatient }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editableData, setEditableData] = useState(data);
-  const [showPopup, setShowPopup] = useState(false); // Popup state
-  const [patientName, setPatientName] = useState(""); // State for patient name
-  const [isSaving, setIsSaving] = useState(false); // Loading state for save action
+  const [showPopup, setShowPopup] = useState(false);
+  const [patientName, setPatientName] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isApproved, setIsApproved] = useState(false); // New state for checkbox
 
   const supabase = createClient();
   const [user, setUser] = useState(null);
@@ -40,7 +41,6 @@ const Modal = ({ closeModal, data, time, isNewPatient }) => {
         return;
       }
 
-      // Dispatch a custom event to trigger patient update in the sidebar
       const updateEvent = new CustomEvent("patientsUpdated", { detail: data });
       window.dispatchEvent(updateEvent);
     } catch (error) {
@@ -66,6 +66,7 @@ const Modal = ({ closeModal, data, time, isNewPatient }) => {
             soap_note: editableData,
             created_at: new Date(),
             email: user?.email,
+            is_approved: isApproved, // Include isApproved in insert
           },
         ]);
 
@@ -73,39 +74,39 @@ const Modal = ({ closeModal, data, time, isNewPatient }) => {
           throw error;
         }
 
-        // Fetch updated patients after creating a new one
         await fetchUpdatedPatients();
       } else {
         // Update existing patient data
         const { error } = await supabase
           .from("soap_notes")
-          .update({ soap_note: editableData })
+          .update({
+            soap_note: editableData,
+            is_approved: isApproved, // Include isApproved in update
+          })
           .eq("soap_note", data);
 
         if (error) {
           throw error;
         }
 
-        // Fetch updated patients after updating an existing one
         await fetchUpdatedPatients();
       }
 
-      // Close the modal after saving
       closeModal();
     } catch (error) {
       console.error("Error saving data:", error.message);
     } finally {
       setIsSaving(false);
-      setShowPopup(false); // Hide the popup if it was shown
+      setShowPopup(false);
     }
   };
 
   // Handle showing the popup or directly saving based on isNewPatient flag
   const handleSaveClick = async () => {
     if (isNewPatient) {
-      setShowPopup(true); // Show popup only for new patients
+      setShowPopup(true);
     } else {
-      await handleSaveData(); // Directly save data for existing patients
+      await handleSaveData();
     }
   };
 
@@ -146,8 +147,15 @@ const Modal = ({ closeModal, data, time, isNewPatient }) => {
             <ReactMarkdown className="prose max-w-none">{editableData}</ReactMarkdown>
           )}
         </div>
-        <div className="w-full h-[10%] flex justify-between gap-4 align-baseline">
-          <p>{`Approved by ${user?.email}`}</p>
+        <div className="w-full h-[10%] flex justify-between items-center gap-4 align-baseline">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={isApproved}
+              onChange={() => setIsApproved(!isApproved)}
+            />
+            {`Approved by ${user?.email}`}
+          </label>
           <p>{time}</p>
         </div>
       </div>
