@@ -251,7 +251,7 @@ export default function Dashboard() {
                     )}
 
                     {isModalOpen && selectedPatient && (
-                        <Modal isNewPatient={false} data={selectedPatient.soap_note} time={selectedPatient.created_at} closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
+                        <Modal isNewPatient={false} isApproved={selectedPatient.is_approved} data={selectedPatient.soap_note} time={selectedPatient.created_at} closeModal={closeModal} isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
                     )}
                 </>
             )}

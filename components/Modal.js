@@ -5,13 +5,13 @@ import ReactMarkdown from "react-markdown";
 import { FiEdit3, FiEye } from "react-icons/fi";
 import { createClient } from "@/libs/supabase/client";
 
-const Modal = ({ closeModal, data, time, isNewPatient }) => {
+const Modal = ({ isApproved: parentIsApproved, closeModal, data, time, isNewPatient }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editableData, setEditableData] = useState(data);
   const [showPopup, setShowPopup] = useState(false);
   const [patientName, setPatientName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [isApproved, setIsApproved] = useState(false); // New state for checkbox
+  const [isApproved, setIsApproved] = useState(false); // Local state for checkbox
 
   const supabase = createClient();
   const [user, setUser] = useState(null);
@@ -27,6 +27,15 @@ const Modal = ({ closeModal, data, time, isNewPatient }) => {
 
     getUser();
   }, [supabase]);
+
+  // Set the value of isApproved from the parent or default to false
+  useEffect(() => {
+    if (typeof parentIsApproved !== "undefined") {
+      setIsApproved(parentIsApproved); // Use the value passed from the parent
+    } else {
+      setIsApproved(false); // Default to false if not provided
+    }
+  }, [parentIsApproved]);
 
   // Fetch updated patient data from Supabase
   const fetchUpdatedPatients = async () => {
