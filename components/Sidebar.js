@@ -15,6 +15,7 @@ const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
     const [isConfirmOpen, setIsConfirmOpen] = useState(false); // State for confirmation modal
     const [patientToDelete, setPatientToDelete] = useState(null); // Store the patient to be deleted
 
+
     const getColor = (index) => {
         const colors = ["bg-blue-500", "bg-pink-500", "bg-green-500", "bg-yellow-500"];
         return colors[index % colors.length]; // Cycle through the color array
@@ -117,6 +118,11 @@ const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
             console.error('Unexpected error:', err);
         }
     };
+
+    const startMeet = () => {
+        const uniqueID = Math.random().toString(36).substr(2, 9); // Generate unique ID
+        window.location.href = `/meet/${uniqueID}`; // Redirect to /meet/{ID} using window.location
+    }
 
     return (
         <>
@@ -221,8 +227,8 @@ const Sidebar = ({ patients, setPatients, handlePatientClick }) => {
                 </ul>
 
                 <div className="mt-4">
-                    <button className="bg-blue-500 text-white w-full px-4 py-2 rounded-lg hover:bg-blue-600 font-bold flex items-center justify-center">
-                        Record New SOAP
+                    <button onClick={startMeet} className="bg-blue-500 text-white w-full px-4 py-2 rounded-lg hover:bg-blue-600 font-bold flex items-center justify-center">
+                        Start New Meeting
                     </button>
                 </div>
             </aside>
